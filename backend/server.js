@@ -3,6 +3,7 @@ const cors = require("cors");
 const nodemailer = require("nodemailer");
 const dotenv = require("dotenv");
 const path = require("path");
+const dns = require("dns");
 
 // Load .env from the portfolio root folder
 dotenv.config({
@@ -21,6 +22,10 @@ const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 587,
     secure: false,
+    family: 4,
+    lookup: (hostname, options, callback) => {
+        dns.lookup(hostname, { family: 4 }, callback);
+    },
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
