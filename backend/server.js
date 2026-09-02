@@ -1,48 +1,38 @@
 const express = require("express");
 const cors = require("cors");
-const nodemailer = require("nodemailer");
 const dotenv = require("dotenv");
 const path = require("path");
-const dns = require("dns");
+const { Resend } = require("resend");
 
-// Load .env from the portfolio root folder
 dotenv.config({
     path: path.join(__dirname, "../.env")
 });
 
 const app = express();
-const PORT = 5001;
+const PORT = process.env.PORT || 5001;
 
-// Middleware
+function getResendClient() {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+        return null;
+    }
+
+    return new Resend(apiKey);
+}
+
 app.use(cors());
 app.use(express.json());
 
-// Gmail transporter
-const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    family: 4,
-    lookup: (hostname, options, callback) => {
-        dns.lookup(hostname, { family: 4 }, callback);
-    },
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
-});
-
-// Test backend
 app.get("/", (req, res) => {
     res.send("Portfolio backend is running!");
 });
 
-// Contact form API
-app.post("/api/contact", async(req, res) => {
+app.post("/api/contact", async (req, res) => {
     try {
-        const { name, email, message } = req.body;
+        const name = String(req.body.name || "").trim();
+        const email = String(req.body.email || "").trim();
+        const message = String(req.body.message || "").trim();
 
-        // Check fields
         if (!name || !email || !message) {
             return res.status(400).json({
                 success: false,
@@ -50,30 +40,63 @@ app.post("/api/contact", async(req, res) => {
             });
         }
 
-        // Email to your Gmail
-        const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: process.env.EMAIL_USER,
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailPattern.test(email)) {
+            return res.status(400).json({
+                success: false,
+                message: "Please enter a valid email address."
+            });
+        }
+
+        if (!process.env.RESEND_API_KEY || !process.env.EMAIL_TO) {
+            console.error("Missing RESEND_API_KEY or EMAIL_TO environment variable");
+            return res.status(500).json({
+                success: false,
+                message: "Failed to send message."
+            });
+        }
+
+        const resend = getResendClient();
+        if (!resend) {
+            return res.status(500).json({
+                success: false,
+                message: "Failed to send message."
+            });
+        }
+
+        const fromAddress = process.env.EMAIL_FROM || "Portfolio <onboarding@resend.dev>";
+
+        const { error } = await resend.emails.send({
+            from: fromAddress,
+            to: process.env.EMAIL_TO,
             replyTo: email,
             subject: `Portfolio Contact - ${name}`,
-            text: `
-You received a new message from your portfolio.
+            text: `You received a new message from your portfolio.
 
 Name: ${name}
 Email: ${email}
 
 Message:
-${message}
-            `
-        };
+${message}`,
+            html: `<p>You received a new message from your portfolio.</p>
+<p><strong>Name:</strong> ${name}</p>
+<p><strong>Email:</strong> ${email}</p>
+<p><strong>Message:</strong></p>
+<p>${message.replace(/\n/g, "<br>")}</p>`
+        });
 
-        await transporter.sendMail(mailOptions);
+        if (error) {
+            console.error("Resend error:", error);
+            return res.status(500).json({
+                success: false,
+                message: "Failed to send message."
+            });
+        }
 
         res.status(200).json({
             success: true,
-            message: "Message sent successfully!"
+            message: "Message sent successfully"
         });
-
     } catch (error) {
         console.error("Email error:", error);
 
@@ -84,7 +107,6 @@ ${message}
     }
 });
 
-// Start server
 app.listen(PORT, () => {
-    console.log(`Backend running at http://localhost:${PORT}`);
+    console.log(`Backend running on port ${PORT}`);
 });
