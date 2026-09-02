@@ -251,22 +251,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
             });
 
-            const data = await response.json();
+            let data;
+            try {
+                data = await response.json();
+            } catch (parseError) {
+                throw new Error('Server returned an invalid response.');
+            }
 
-            if (data.success) {
+            if (response.ok && data.success === true) {
                 formStatus.className = 'form-status success';
-                formStatus.textContent = 'Thank you, Rahul! Your message was sent successfully.';
+                formStatus.textContent = 'Thank you! Your message was sent successfully.';
                 contactForm.reset();
             } else {
                 formStatus.className = 'form-status error';
-                formStatus.textContent = data.message || 'Failed to send message.';
+                formStatus.textContent = data.message || `Failed to send message (${response.status}).`;
             }
 
         } catch (error) {
             console.error('Error:', error);
 
             formStatus.className = 'form-status error';
-            formStatus.textContent = 'Unable to connect to the server. Please try again.';
+            formStatus.textContent = error.message || 'Unable to connect to the server. Please try again.';
         }
 
         // Restore button

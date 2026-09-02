@@ -20,6 +20,22 @@ function getResendClient() {
     return new Resend(apiKey);
 }
 
+function getErrorMessage(error) {
+    if (!error) {
+        return "Failed to send message.";
+    }
+
+    if (typeof error === "string") {
+        return error;
+    }
+
+    if (error.message) {
+        return error.message;
+    }
+
+    return "Failed to send message.";
+}
+
 app.use(cors());
 app.use(express.json());
 
@@ -50,11 +66,19 @@ app.post("/api/contact", async (req, res) => {
 
         const emailTo = process.env.EMAIL_TO || process.env.EMAIL_USER;
 
-        if (!process.env.RESEND_API_KEY || !emailTo) {
-            console.error("Missing RESEND_API_KEY or recipient email (EMAIL_TO / EMAIL_USER)");
+        if (!process.env.RESEND_API_KEY) {
+            console.error("Missing RESEND_API_KEY environment variable");
             return res.status(500).json({
                 success: false,
-                message: "Failed to send message."
+                message: "Email service is not configured: RESEND_API_KEY is missing."
+            });
+        }
+
+        if (!emailTo) {
+            console.error("Missing recipient email (EMAIL_TO / EMAIL_USER)");
+            return res.status(500).json({
+                success: false,
+                message: "Email service is not configured: EMAIL_TO is missing."
             });
         }
 
@@ -62,13 +86,13 @@ app.post("/api/contact", async (req, res) => {
         if (!resend) {
             return res.status(500).json({
                 success: false,
-                message: "Failed to send message."
+                message: "Email service is not configured: RESEND_API_KEY is missing."
             });
         }
 
         const fromAddress = process.env.EMAIL_FROM || "Portfolio <onboarding@resend.dev>";
 
-        const { error } = await resend.emails.send({
+        const { data, error } = await resend.emails.send({
             from: fromAddress,
             to: emailTo,
             replyTo: email,
@@ -91,20 +115,29 @@ ${message}`,
             console.error("Resend error:", error);
             return res.status(500).json({
                 success: false,
-                message: "Failed to send message."
+                message: getErrorMessage(error)
             });
         }
 
-        res.status(200).json({
+        if (!data || !data.id) {
+            console.error("Resend did not return a confirmed email id:", data);
+            return res.status(500).json({
+                success: false,
+                message: "Resend did not confirm the email was sent."
+            });
+        }
+
+        return res.status(200).json({
             success: true,
-            message: "Message sent successfully"
+            message: "Message sent successfully",
+            emailId: data.id
         });
     } catch (error) {
         console.error("Email error:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
-            message: "Failed to send message."
+            message: getErrorMessage(error)
         });
     }
 });
