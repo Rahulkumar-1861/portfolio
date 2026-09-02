@@ -223,28 +223,60 @@ document.addEventListener('DOMContentLoaded', () => {
     const formSubmitBtn = document.getElementById('form-submit-button');
     const formStatus = document.getElementById('form-status-message');
 
-    contactForm.addEventListener('submit', (e) => {
+    contactForm.addEventListener('submit', async(e) => {
         e.preventDefault();
+
+        // Get form data
+        const formData = new FormData(contactForm);
+
+        const name = formData.get('name');
+        const email = formData.get('email');
+        const message = formData.get('message');
 
         // Visual loading state
         formSubmitBtn.disabled = true;
         const originalBtnText = formSubmitBtn.innerHTML;
         formSubmitBtn.innerHTML = 'Sending Message... <span class="spinner"></span>';
 
-        // Simulate server side request
+        try {
+            const response = await fetch('http://localhost:5001/api/contact', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: name,
+                    email: email,
+                    message: message
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                formStatus.className = 'form-status success';
+                formStatus.textContent = 'Thank you, Rahul! Your message was sent successfully.';
+                contactForm.reset();
+            } else {
+                formStatus.className = 'form-status error';
+                formStatus.textContent = data.message || 'Failed to send message.';
+            }
+
+        } catch (error) {
+            console.error('Error:', error);
+
+            formStatus.className = 'form-status error';
+            formStatus.textContent = 'Unable to connect to the server. Please try again.';
+        }
+
+        // Restore button
+        formSubmitBtn.disabled = false;
+        formSubmitBtn.innerHTML = originalBtnText;
+
+        // Clear status after 5 seconds
         setTimeout(() => {
-            formSubmitBtn.disabled = false;
-            formSubmitBtn.innerHTML = originalBtnText;
-
-            formStatus.className = 'form-status success';
-            formStatus.textContent = 'Thank you, Rahul! Your message was sent successfully. (Mock Submission)';
-
-            contactForm.reset();
-
-            // Clear status after 5s
-            setTimeout(() => {
-                formStatus.textContent = '';
-            }, 5000);
-        }, 1500);
+            formStatus.textContent = '';
+            formStatus.className = 'form-status';
+        }, 5000);
     });
 });
