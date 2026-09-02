@@ -432,59 +432,31 @@ body.light-theme .hero-tag {
     z-index: 1;
 }
 
-.hero-svg {
+.hero-photo-frame {
     position: relative;
     z-index: 2;
     width: 100%;
-    height: auto;
+    max-width: 340px;
+    aspect-ratio: 1;
+    margin: 0 auto;
+    padding: 4px;
+    border-radius: 50%;
+    background: var(--gradient-accent);
+    box-shadow:
+        0 0 40px rgba(139, 92, 246, 0.35),
+        0 0 80px rgba(6, 182, 212, 0.2),
+        var(--shadow-md);
 }
 
-
-/* Animations on SVG shapes */
-
-.floating-shape-1 {
-    animation: float1 8s ease-in-out infinite;
-    transform-origin: center;
-}
-
-.floating-shape-2 {
-    animation: float2 10s ease-in-out infinite;
-    transform-origin: center;
-}
-
-.floating-shape-3 {
-    animation: float3 6s ease-in-out infinite;
-    transform-origin: center;
-}
-
-@keyframes float1 {
-    0%,
-    100% {
-        transform: translateY(0) rotate(0deg);
-    }
-    50% {
-        transform: translateY(-15px) rotate(3deg);
-    }
-}
-
-@keyframes float2 {
-    0%,
-    100% {
-        transform: translateY(0) scale(1);
-    }
-    50% {
-        transform: translateY(12px) scale(0.97);
-    }
-}
-
-@keyframes float3 {
-    0%,
-    100% {
-        transform: translate(0, 0);
-    }
-    50% {
-        transform: translate(-8px, -8px);
-    }
+.hero-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 20%;
+    border-radius: 50%;
+    border: 4px solid var(--bg-color);
+    display: block;
+    background-color: var(--card-bg);
 }
 
 
@@ -1392,6 +1364,13 @@ body.light-theme .form-group textarea {
         max-width: 320px;
         margin: 0 auto;
     }
+    .hero-photo-frame {
+        max-width: 260px;
+    }
+    .glow-sphere {
+        width: 220px;
+        height: 220px;
+    }
     /* About */
     .about-grid {
         grid-template-columns: 1fr;
@@ -1429,6 +1408,13 @@ body.light-theme .form-group textarea {
     .hero-ctas {
         flex-direction: column;
         gap: 0.8rem;
+    }
+    .hero-photo-frame {
+        max-width: 220px;
+    }
+    .glow-sphere {
+        width: 180px;
+        height: 180px;
     }
     .btn {
         width: 100%;
