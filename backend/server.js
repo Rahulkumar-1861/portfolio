@@ -48,8 +48,10 @@ app.post("/api/contact", async (req, res) => {
             });
         }
 
-        if (!process.env.RESEND_API_KEY || !process.env.EMAIL_TO) {
-            console.error("Missing RESEND_API_KEY or EMAIL_TO environment variable");
+        const emailTo = process.env.EMAIL_TO || process.env.EMAIL_USER;
+
+        if (!process.env.RESEND_API_KEY || !emailTo) {
+            console.error("Missing RESEND_API_KEY or recipient email (EMAIL_TO / EMAIL_USER)");
             return res.status(500).json({
                 success: false,
                 message: "Failed to send message."
@@ -68,7 +70,7 @@ app.post("/api/contact", async (req, res) => {
 
         const { error } = await resend.emails.send({
             from: fromAddress,
-            to: process.env.EMAIL_TO,
+            to: emailTo,
             replyTo: email,
             subject: `Portfolio Contact - ${name}`,
             text: `You received a new message from your portfolio.
